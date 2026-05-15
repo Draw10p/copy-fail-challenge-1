@@ -17,7 +17,7 @@ Tu tarea: reproducirlo y parchearlo.
 # 2. Ábrelo en GitHub Codespaces
 # 3. Dentro del devcontainer:
 
-git config user.name "Darwin Román"
+git config user.name "Darwin Roman"
 git config user.email "daromanag@uide.edu.ec"
 
 make setup        # compila kernel vulnerable + rootfs (~20 min)
