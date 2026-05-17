@@ -1,0 +1,17 @@
+# Reporte técnico 
+# -----------------------------------------------------------------------------------------------------------------------------------------
+1. ¿Cuál es el bug raíz y en qué archivo/función está?
+The root cause of the bug is a use-after-free/memory corruption logic flaw in the file crypto/algif_aead.c, within the _aead_recvmsg() function. The error was in an optimization that allowed in-place operations, where the kernel merged the transmission Scatter-Gather List (TX SGL) with the reception Scatter-Gather List (RX SGL) using the sg_chain() function, assigning the same source variable to the destination (req->src = req->dst).
+# -----------------------------------------------------------------------------------------------------------------------------------------
+2. ¿Por qué el write a `dst[assoclen + cryptlen]` es peligroso?
+Writing to the destination buffer (dst) in an uncontrolled manner under this configuration is critical, since—due to the memory pointer overlap caused by the bug—the user’s write ends up pointing to kernel memory pages belonging to the page cache. This allows a normal process to overwrite binary data directly in the system’s RAM before security checks are performed, corrupting internal kernel buffers.
+# -----------------------------------------------------------------------------------------------------------------------------------------
+3. ¿Por qué el exploit es "stealthy" (no modifica el archivo en disco)?
+Because this is a highly stealthy attack, it does not alter the physical file on the hard drive. The exploit injects the malicious code only into the copy of the binary temporarily stored in RAM (the page cache); therefore, forensic audit tools that scan storage or verify cryptographic signatures on disk will not detect any anomalies, and all traces of the modification will disappear completely when the server is restarted.
+# -----------------------------------------------------------------------------------------------------------------------------------------
+4. Conecta esto con lo que vimos en clase: page cache, `chmod`, setuid, inodos
+The exploit manipulates the page cache—a kernel mechanism that speeds up file reads from the inode on disk—to modify the behavior of the /usr/bin/su binary in memory, which has the Setuid bit enabled in its permissions (previously set using chmod). By modifying the logic of this binary in RAM, the process, when executed by a regular user, legitimately inherits the privileges of the file’s owner (UID 0), thereby granting a root shell without altering the metadata of the original inode.
+# -----------------------------------------------------------------------------------------------------------------------------------------
+5. ¿Qué aprendiste sobre cómo múltiples cambios "razonables" pueden crear un bug grave?
+This case demonstrates that in software engineering and operating systems, the combination of several design features each of which is logical and “acceptable” on its own, such as in-place performance optimization to save RAM, the use of sg_chain() to concatenate lists, and cryptographic flexibility from user space via AF_ALG can interact in unforeseen ways. The result is a catastrophic security flaw where the sum of valid optimizations ends up nullifying the kernel’s most fundamental isolation mechanisms.
+# -----------------------------------------------------------------------------------------------------------------------------------------
