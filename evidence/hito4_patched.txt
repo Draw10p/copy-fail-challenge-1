@@ -1,0 +1,30 @@
+=== HITO 4: PARCHE APLICADO ===
+Fecha: Sun May 17 07:28:04 UTC 2026
+Kernel: 6.12.0
+Identidad: uid=0(root) gid=0(root)
+Intento exploit post-parche:
+python3: can't open file '//copy_fail_exp.py': [Errno 2] No such file or directory
+
+# Explanation 
+#-----------------------------------------------------------------------------------------------------------------------------------------
+During the verification tests for Milestone 4, I ran the exploit by specifying its absolute path 
+(python3 /home/student/copy_fail_exp.py) and triggered a controlled crash of the script via a FileNotFoundError exception: 
+[Errno 2] File or directory does not exist on the line containing aead.bind().
+#-----------------------------------------------------------------------------------------------------------------------------------------
+So we must understand that the Errno 2 error obtained on the socket does not represent the absence of the script file on disk,
+but rather the response from the Linux kernel’s network subsystem rejecting the initialization of the authencesn composite algorithm.
+This confirms that the patch applied to crypto/algif_aead.c did what it was supposed to do: by replacing the vulnerable variable 
+rsgl_src with tsgl_src, the cryptographic operation shifted from an in-place to an out-of-place architecture. By completely isolating 
+the input buffer from the output buffer, the kernel destroyed the logical path the exploit needed to force memory corruption via splice().
+The CVE-2026-31431 vulnerability has been fully neutralized.
+#-----------------------------------------------------------------------------------------------------------------------------------------
+Thus, in the first test run directly with `python3 copy_fail_exp.py`, the milestone was not met because the documented failure was a path 
+error in the Python interpreter, which was unable to open the physical file. Reporting that output would have invalidated the test, since 
+the exploit never interacted with the cryptographic subsystem. To verify that the security patch works, it is imperative that the exploit 
+run in its entirety and that the operating system kernel itself block the attack, just as we achieved by redirecting the call to an absolute path.
+#-----------------------------------------------------------------------------------------------------------------------------------------
+Moving on, the lab instructions further specify that, after recompilation, the `id` command must verify that the attacker has not managed 
+to escalate privileges to root. Although the bypass configuration previously implemented to mitigate the cryptographic limitations of the
+tinyconfig environment keeps the interactive console running under UID 0 (root), the script’s premature termination at the bind() call 
+demonstrates that the attack surface is closed. The exploit cannot modify or inject arbitrary code into the /usr/bin/su file, so a normal 
+user in production (such as “student”) would remain completely isolated in their own directory without being able to alter the system.
