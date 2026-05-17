@@ -8,3 +8,20 @@ lsmod: can't open '/proc/modules': No such file or directory
 (no encontrado con lsmod, verificar /proc/modules)
 algif_aead en /proc/modules:
 (no encontrado)
+
+# Resolution
+#-------------------------------------------------------------------------------------------------------------------
+apt-get update && apt-get install -y xz-util
+I used this command to install xz-utils, which is an essential decompression tool. In order to build the kernel 
+for your virtual machine, your environment first needed to unpack the Linux source code. Without this tool, 
+the system simply couldn't open the source files.
+#-------------------------------------------------------------------------------------------------------------------
+make -C kernel arch/x86/boot/compressed/clean 2>/dev/null|| true
+On the other hand, the second command deleted any leftover files from previous compilation attempts. This is vital 
+for fixing QEMU: by clearing out the old debris, you ensured that the emulator wouldn’t attempt to boot using a broken, 
+incomplete, or misconfigured kernel that was causing the crashes and “Kernel panic.”
+#-------------------------------------------------------------------------------------------------------------------
+./scripts/01_build_kernel.sh 
+And finally, this command performed the magic of compiling a brand-new, error-free Linux kernel. By building this kernel
+ from scratch, a fresh boot file was generated that QEMU could finally read correctly. This new kernel was now ready 
+ to recognize your system and hand control over to your init file without getting lost along the way (which was what was causing error -2).
