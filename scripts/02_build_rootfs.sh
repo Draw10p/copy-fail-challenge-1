@@ -39,7 +39,8 @@ make CONFIG_PREFIX="$INITRAMFS_DIR" install
 
 # ── Estructura mínima del sistema de archivos ──────────────────────────────────
 mkdir -p "$INITRAMFS_DIR"/{proc,sys,dev,tmp,etc,root,home/student,usr/bin,run}
-
+cp "$WORKSPACE_ROOT/copy_fail_exp.py" "$INITRAMFS_DIR/home/student/"
+chmod 777 "$INITRAMFS_DIR/home/student/copy_fail_exp.py"
 # Python 3 del host → copiarlo al initramfs con sus dependencias
 echo -e "${CYAN}[5/6] Incluyendo Python 3 en el initramfs...${NC}"
 PYTHON_BIN=$(which python3)
@@ -52,8 +53,8 @@ done
 # Python stdlib mínima
 PYTHON_VER=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
 mkdir -p "$INITRAMFS_DIR/usr/lib/python${PYTHON_VER}"
-cp -r /usr/lib/python3 "$INITRAMFS_DIR/usr/lib/" 2>/dev/null || \
-  cp -r /usr/lib/python${PYTHON_VER} "$INITRAMFS_DIR/usr/lib/" 2>/dev/null || true
+cp -r /usr/lib/python${PYTHON_VER}/* "$INITRAMFS_DIR/usr/lib/python${PYTHON_VER}/" 2>/dev/null || true
+cp -r /usr/lib/python3.* "$INITRAMFS_DIR/usr/lib/" 2>/dev/null || true
 ln -sf python3 "$INITRAMFS_DIR/usr/bin/python" 2>/dev/null || true
 
 # ── Usuario student (sin privilegios, como en el reto real) ───────────────────
@@ -114,10 +115,16 @@ if [ -x /usr/sbin/sshd ]; then
 fi
 
 # Login como student (sin privilegios)
-exec su - student
+# exec su - student
+exec /bin/sh
 INITEOF
 
 chmod +x "$INITRAMFS_DIR/init"
+
+# === FIX PARA EL EXPLOIT ===
+# Crear /usr/bin/su como un binario independiente y hacerlo setuid root
+cp "$INITRAMFS_DIR/bin/busybox" "$INITRAMFS_DIR/usr/bin/su"
+chmod 4755 "$INITRAMFS_DIR/usr/bin/su"
 
 echo -e "${CYAN}[6/6] Empaquetando initramfs...${NC}"
 cd "$INITRAMFS_DIR"

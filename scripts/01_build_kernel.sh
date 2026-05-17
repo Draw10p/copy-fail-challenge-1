@@ -65,6 +65,9 @@ scripts/config --enable CRYPTO_AES
 scripts/config --enable CRYPTO_CBC
 scripts/config --enable CRYPTO_HMAC
 scripts/config --enable CRYPTO_SHA256
+# Soporte para Mutex y memoria compartida (Requerido por wget y Python)
+scripts/config --enable FUTEX
+scripts/config --enable SHMEM
 # Setuid binaries (necesario para la escalada de privilegios)
 scripts/config --enable MULTIUSER
 # Misc necesario
