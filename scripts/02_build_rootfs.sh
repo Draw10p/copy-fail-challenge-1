@@ -114,7 +114,7 @@ if [ -x /usr/sbin/sshd ]; then
 fi
 
 # Login como student (sin privilegios)
-exec /bin/sh
+exec su - student
 INITEOF
 
 chmod +x "$INITRAMFS_DIR/init"
